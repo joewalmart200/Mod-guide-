@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VR IL2CPP Modding Guide</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --bg2: #16161a;
+    --bg3: #1e1e24;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0eff4;
+    --muted: #8b8a96;
+    --accent: #7c6af7;
+    --accent2: #a78bfa;
+    --success-bg: #0d2318;
+    --success-border: #16a34a;
+    --success-text: #86efac;
+    --warn-bg: #1f1500;
+    --warn-border: #ca8a04;
+    --warn-text: #fde047;
+    --danger-bg: #1f0d0d;
+    --danger-border: #dc2626;
+    --danger-text: #fca5a5;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .site-header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .site-header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .site-header .sub { font-size: 13px; color: var(--muted); margin-left: auto; }
+
+  /* Main layout */
+  .guide {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  /* Screen transitions */
+  .screen { display: none; animation: rise 0.35s ease; }
+  .screen.active { display: block; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Typography */
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); margin-bottom: 0.75rem; line-height: 1.25; }
+  h3 { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 0.5rem; margin-top: 1.25rem; }
+  p { color: var(--muted); font-size: 15px; line-height: 1.75; margin-bottom: 1rem; }
+  p strong { color: var(--text); font-weight: 600; }
+
+  /* Choice cards */
+  .choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 2rem;
+  }
+  .choice-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem 1.25rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .choice-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg3);
+    transform: translateY(-2px);
+  }
+  .choice-btn:active { transform: translateY(0); }
+  .choice-btn .icon { font-size: 28px; margin-bottom: 10px; display: block; }
+  .choice-btn .label { font-size: 15px; font-weight: 600; display: block; color: var(--text); }
+  .choice-btn .sub { font-size: 12px; color: var(--muted); margin-top: 4px; display: block; line-height: 1.4; }
+
+  /* Alert boxes */
+  .alert {
+    border-radius: var(--radius-sm);
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 14px;
+    line-height: 1.6;
+    border-left: 3px solid;
+  }
+  .alert-warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+  .alert-success { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+  .alert-danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+  .alert strong { font-weight: 600; }
+
+  /* Info card */
+  .info-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .info-card p { margin-bottom: 0; }
+  .info-card h3 { margin-top: 0; }
+
+  /* Step list */
+  .step-list { list-style: none; counter-reset: steps; margin: 1rem 0 1.25rem; }
+  .step-list li {
+    counter-increment: steps;
+    display: flex;
+    gap: 14px;
+    margin-bottom: 1rem;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.65;
+    align-items: flex-start;
+  }
+  .step-list li::before {
+    content: counter(steps);
+    min-width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .step-list li strong { color: var(--text); }
+
+  /* Code */
+  .code-block {
+    background: #0a0a0c;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.875rem 1rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    color: #c9d1d9;
+    margin: 0.75rem 0 1rem;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.6;
+  }
+
+  /* Video embed */
+  .video-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .video-wrap iframe { width: 100%; height: 240px; display: block; border: none; }
+  .video-caption {
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .video-caption::before { content: '▶'; font-size: 10px; color: var(--accent2); }
+
+  /* Tool grid */
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .tool-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.875rem 1rem;
+  }
+  .tool-item .name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .tool-item .desc { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+
+  /* Tags */
+  .tags { margin-bottom: 1.25rem; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .tag-hard { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+  .tag-med { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+  .tag-easy { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  /* Back link */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    margin-bottom: 2rem;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0;
+    transition: color 0.15s;
+  }
+  .back-link:hover { color: var(--text); }
+
+  /* Slide nav */
+  .slide-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .nav-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .nav-btn:hover:not(:disabled) { background: var(--bg3); border-color: var(--border2); }
+  .nav-btn:active:not(:disabled) { transform: scale(0.97); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .nav-btn.primary:hover:not(:disabled) { background: var(--accent2); border-color: var(--accent2); }
+
+  /* Progress dots */
+  .progress-dots { display: flex; gap: 7px; align-items: center; }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border2);
+    transition: background 0.2s, width 0.2s;
+    cursor: pointer;
+  }
+  .dot.active { background: var(--accent); width: 18px; border-radius: 4px; }
+
+  /* Footer */
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4rem;
+  }
+
+  @media (max-width: 600px) {
+    .guide { padding: 2rem 1.25rem; }
+    .choice-grid { grid-template-columns: 1fr 1fr; }
+    .tool-grid { grid-template-columns: 1fr; }
+    h2 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <span class="logo-dot"></span>
+  <h1>VR Modding Guide</h1>
+  <span class="sub">IL2CPP Edition</span>
+</header>
+
+<main class="guide">
+
+  <!-- SCREEN 0: Headset picker -->
+  <div class="screen active" id="s0">
+    <div class="eyebrow">Step 1 of 2</div>
+    <h2>What headset are you using?</h2>
+    <p>Select your headset and we'll build a step-by-step tutorial tailored to your exact setup.</p>
+    <div class="choice-grid">
+      <button class="choice-btn" onclick="pickHeadset('quest')">
+        <span class="icon">🥽</span>
+        <span class="label">Meta Quest</span>
+        <span class="sub">Quest 2, 3, 3S, Pro</span>
+      </button>
+      <button class="choice-btn" onclick="pickHeadset('pcvr')">
+        <span class="icon">🖥️</span>
+        <span class="label">PC VR</span>
+        <span class="sub">Index, Vive, Reverb, Rift S</span>
+      </button>
+      <button class="choice-btn" onclick="pickHeadset('psvr')">
+        <span class="icon">🎮</span>
+        <span class="label">PSVR2</span>
+        <span class="sub">PlayStation VR2</span>
+      </button>
+      <button class="choice-btn" onclick="pickHeadset('pico')">
+        <span class="icon">📷</span>
+        <span class="label">Pico</span>
+        <span class="sub">Pico 4, Neo 3</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: Quest mode picker -->
+  <div class="screen" id="s1">
+    <div class="eyebrow">Step 2 of 2</div>
+    <button class="back-link" onclick="goTo('s0')">← Back</button>
+    <h2>How are you playing?</h2>
+    <p>Quest headsets can run games natively (standalone) or stream from a gaming PC via AirLink or Link cable. The modding approach is completely different depending on which you use.</p>
+    <div class="choice-grid">
+      <button class="choice-btn" onclick="startTutorial('quest-standalone')">
+        <span class="icon">📱</span>
+        <span class="label">Standalone</span>
+        <span class="sub">Games from the Meta Store, no PC required</span>
+      </button>
+      <button class="choice-btn" onclick="startTutorial('quest-pcvr')">
+        <span class="icon">🔗</span>
+        <span class="label">PC VR via Quest</span>
+        <span class="sub">Using AirLink or Link cable to a gaming PC</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN: PSVR2 -->
+  <div class="screen" id="s-psvr">
+    <button class="back-link" onclick="goTo('s0')">← Back</button>
+    <div class="eyebrow">PSVR2</div>
+    <h2>PSVR2 modding</h2>
+    <div class="alert alert-danger"><strong>Not supported.</strong> PSVR2 is a fully locked platform. Sony does not allow sideloading, APK access, or code injection of any kind.</div>
+    <p>PSVR2 runs on a closed PlayStation ecosystem — there is no developer mode, no file system access, and no known method to mod IL2CPP games on the platform. This is unlikely to change.</p>
+    <p>If the game you want to mod has a PC VR version (e.g. on Steam), that would be your best alternative path.</p>
+  </div>
+
+  <!-- TUTORIAL CONTAINER -->
+  <div class="screen" id="tutorial-container">
+    <button class="back-link" onclick="goTo('s0')">← Start over</button>
+    <div id="tutorial-slides"></div>
+    <div class="slide-nav">
+      <button class="nav-btn" id="prev-btn" onclick="prevSlide()" disabled>← Previous</button>
+      <div class="progress-dots" id="progress-dots"></div>
+      <button class="nav-btn primary" id="next-btn" onclick="nextSlide()">Next →</button>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  VR IL2CPP Modding Guide &mdash; always check your game's community Discord for the latest tools
+</footer>
+
+<script>
+let currentSlide = 0;
+let slides = [];
+
+const tutorials = {
+  'quest-standalone': [
+    {
+      title: 'Overview',
+      content: `
+        <div class="eyebrow">Quest Standalone · Slide 1 of 6</div>
+        <h2>Modding standalone Quest games</h2>
+        <div class="alert alert-warn"><strong>Difficulty: Hard.</strong> Quest runs Android ARM binaries — PC mod loaders like BepInEx and MelonLoader do not work here at all.</div>
+        <p>Standalone Quest games are compiled with IL2CPP to native ARM machine code. You cannot inject C# mods. Instead you either patch the APK binary directly, or use game-specific tools the community has built.</p>
+        <p><strong>Your two main paths:</strong></p>
+        <div class="tool-grid">
+          <div class="tool-item"><div class="name">APK patching</div><div class="desc">Modify the game's native binary, repack, and sideload. Works for any game but requires reverse engineering knowledge.</div></div>
+          <div class="tool-item"><div class="name">Game-specific tools</div><div class="desc">BMBF, QuestPatcher — easy one-click solutions that exist for popular titles.</div></div>
+        </div>
+        <p><strong>Always check first</strong> if your game has a dedicated modding community — it saves enormous effort. Beat Saber uses BMBF, Gorilla Tag uses QuestPatcher, etc.</p>
+      `
+    },
+    {
+      title: 'Developer Mode & ADB',
+      content: `
+        <div class="eyebrow">Quest Standalone · Slide 2 of 6</div>
+        <h2>Enable developer mode & ADB</h2>
+        <p>Before anything else, you need developer mode enabled on your headset and ADB working on your PC. This lets you pull APKs off the Quest and push modified ones back.</p>
+        <ol class="step-list">
+          <li>Open the <strong>Meta app</strong> on your phone. Go to <em>Menu → Devices → select your headset → Developer Mode</em> and toggle it on. You may need to verify via the Meta developer portal first.</li>
+          <li>Install <strong>SideQuest</strong> (desktop app) on your PC — it bundles ADB and makes the process easier. Download from sidequestvr.com.</li>
+          <li>Connect your Quest to PC via USB-C. Put the headset on — a prompt appears asking to allow USB debugging. Tap <em>Always allow from this computer.</em></li>
+          <li>Open a terminal and run <code style="font-family:monospace;font-size:13px;background:#0a0a0c;padding:2px 6px;border-radius:4px">adb devices</code> — you should see your headset listed as a device.</li>
+        </ol>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/RoIXxIfRNTY" allowfullscreen title="SideQuest ADB setup"></iframe>
+          <div class="video-caption">SideQuest & ADB setup for Meta Quest</div>
+        </div>
+      `
+    },
+    {
+      title: 'Check for existing tools',
+      content: `
+        <div class="eyebrow">Quest Standalone · Slide 3 of 6</div>
+        <h2>Check for a community mod tool first</h2>
+        <p>Before going the hard route, always check if your specific game already has dedicated modding support. These tools handle patching, signing, and mod management automatically.</p>
+        <div class="alert alert-success"><strong>If your game is Beat Saber, Gorilla Tag, Bonelab, or another popular title</strong> — use the dedicated tool below. It will be dramatically easier than manual APK patching.</div>
+        <div class="info-card">
+          <h3>Beat Saber → BMBF</h3>
+          <p>BMBF (Beat Mod Bureau Framework) is the go-to mod manager for Beat Saber on Quest. It handles custom songs, sabers, platforms, and gameplay mods. Install via SideQuest.</p>
+        </div>
+        <div class="info-card">
+          <h3>Gorilla Tag, Bonelab, others → QuestPatcher</h3>
+          <p>QuestPatcher patches the APK and sets up a full mod loading system similar to PC BepInEx. Supports a growing list of games. Check questpatcher.xyz for the current supported game list.</p>
+        </div>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/Rcds_nJRhBk" allowfullscreen title="Beat Saber BMBF mods"></iframe>
+          <div class="video-caption">How to install Beat Saber mods on Quest with BMBF</div>
+        </div>
+        <p style="font-size:13px;color:var(--muted)">If your game has no existing tool, continue to the next slide for manual APK patching.</p>
+      `
+    },
+    {
+      title: 'Pull APK & dump IL2CPP',
+      content: `
+        <div class="eyebrow">Quest Standalone · Slide 4 of 6</div>
+        <h2>Pull the APK & dump IL2CPP metadata</h2>
+        <div class="tags"><span class="tag tag-hard">Advanced</span></div>
+        <p>If no community tool exists for your game, you'll patch the APK manually. First step: get the APK off the headset and extract all the method names you can patch.</p>
+        <ol class="step-list">
+          <li>Find the game's package name:<div class="code-block">adb shell pm list packages | grep -i [gamename]</div></li>
+          <li>Pull the APK to your PC:<div class="code-block">adb shell pm path com.yourpackage.name
+adb pull /data/app/com.yourpackage.name/base.apk game.apk</div></li>
+          <li>Extract the APK (it's a zip file). Inside, find these two critical files:<div class="code-block">lib/arm64-v8a/libil2cpp.so
+assets/bin/Data/Managed/global-metadata.dat</div></li>
+          <li>Download <strong>Il2CppDumper</strong> from GitHub (Perfare/Il2CppDumper). Run it, point it at both files above, and choose auto mode. It generates <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">dump.cs</code> — a file listing every class, field, and method in the game with memory offsets.</li>
+        </ol>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/gc3I_u_Xy4c" allowfullscreen title="Il2CppDumper tutorial"></iframe>
+          <div class="video-caption">How to use Il2CppDumper — Unity IL2CPP game modding</div>
+        </div>
+      `
+    },
+    {
+      title: 'Patch the binary',
+      content: `
+        <div class="eyebrow">Quest Standalone · Slide 5 of 6</div>
+        <h2>Reverse engineer & patch the binary</h2>
+        <div class="tags"><span class="tag tag-hard">Advanced</span></div>
+        <p>Now you find the function you want to change and patch the ARM assembly. Two approaches depending on what you need:</p>
+        <h3>Option A — Hex editing (simple patches)</h3>
+        <p>For simple value changes (like disabling damage, unlimited currency), use the offset from Il2CppDumper's output, open <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">libil2cpp.so</code> in HxD, navigate to the offset, and change the bytes.</p>
+        <h3>Option B — Ghidra (complex analysis)</h3>
+        <p>For understanding and reworking game logic, import the .so into Ghidra and run the Il2CppDumper-generated script to label all functions. You can then read decompiled code, modify it, and re-export a patched binary.</p>
+        <div class="tool-grid">
+          <div class="tool-item"><div class="name">HxD</div><div class="desc">Free hex editor. Best for simple known-offset patches.</div></div>
+          <div class="tool-item"><div class="name">Ghidra</div><div class="desc">NSA's free RE tool. Powerful, steep learning curve.</div></div>
+          <div class="tool-item"><div class="name">IDA Pro</div><div class="desc">Industry standard, expensive but best-in-class disassembler.</div></div>
+          <div class="tool-item"><div class="name">Frida</div><div class="desc">Runtime hooking via embedded gadget. Good for testing patches live.</div></div>
+        </div>
+        <div class="alert alert-warn"><strong>ARM assembly knowledge required.</strong> Most simple patches are just a few instructions — but you'll need to understand basic ARM64 to know what to change and how.</div>
+      `
+    },
+    {
+      title: 'Repack, sign & install',
+      content: `
+        <div class="eyebrow">Quest Standalone · Slide 6 of 6</div>
+        <h2>Repack, sign & install your mod</h2>
+        <p>After patching the binary, you need to repack the APK, sign it (unsigned APKs won't install), and push it back to the headset.</p>
+        <ol class="step-list">
+          <li>Replace the original <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">libil2cpp.so</code> in your extracted APK folder with your patched version.</li>
+          <li>Repack the APK using <strong>APKTool</strong>:<div class="code-block">apktool b game_folder -o game_modded.apk</div></li>
+          <li>Sign the APK using <strong>uber-apk-signer</strong>:<div class="code-block">java -jar uber-apk-signer.jar -a game_modded.apk</div></li>
+          <li>Uninstall the original from the Quest (you'll lose cloud save data):<div class="code-block">adb uninstall com.yourpackage.name</div></li>
+          <li>Install your modded APK:<div class="code-block">adb install game_modded_signed.apk</div></li>
+        </ol>
+        <div class="alert alert-warn"><strong>Anti-tamper & bans.</strong> Some games have server-side verification. Modded APKs may trigger bans from online features, leaderboards, or the game entirely.</div>
+        <div class="alert alert-success"><strong>Done!</strong> Launch the game from your Quest library. If the package name changed, check the Unknown Sources section.</div>
+      `
+    }
+  ],
+
+  'quest-pcvr': [
+    {
+      title: 'Overview',
+      content: `
+        <div class="eyebrow">Quest PC VR · Slide 1 of 4</div>
+        <h2>Modding PC VR games via Quest</h2>
+        <div class="alert alert-success"><strong>Good news.</strong> When you play via AirLink or Link cable, the game runs on your PC — not on the Quest. You get full PC modding support.</div>
+        <p>The game is a Windows executable. IL2CPP mod tools like BepInEx and MelonLoader work perfectly. You treat it exactly like a normal PC VR game.</p>
+        <p>This guide walks through BepInEx for IL2CPP — the most widely supported framework for Unity games. Check your specific game's community to confirm whether they use BepInEx or MelonLoader.</p>
+        <div class="tool-grid">
+          <div class="tool-item"><div class="name">BepInEx</div><div class="desc">Standard for most Unity games. Full IL2CPP support via interop assemblies.</div></div>
+          <div class="tool-item"><div class="name">MelonLoader</div><div class="desc">Popular for VRChat and select titles. Easier setup for beginners.</div></div>
+          <div class="tool-item"><div class="name">Harmony</div><div class="desc">Method patching library used inside mods to hook game code.</div></div>
+          <div class="tool-item"><div class="name">UnityExplorer</div><div class="desc">Runtime game inspector. Essential for finding what to patch.</div></div>
+        </div>
+      `
+    },
+    {
+      title: 'Install BepInEx',
+      content: `
+        <div class="eyebrow">Quest PC VR · Slide 2 of 4</div>
+        <h2>Install BepInEx (IL2CPP version)</h2>
+        <p>BepInEx is the mod loader that makes IL2CPP modding on PC possible. Make sure you get the IL2CPP-compatible version (BepInEx 6.x), not the older Mono version.</p>
+        <ol class="step-list">
+          <li>Go to <strong>github.com/BepInEx/BepInEx/releases</strong>. Download the latest <strong>BepInEx_win_x64</strong> zip — this is the 64-bit Windows build, which covers nearly all modern VR games.</li>
+          <li>Find your game's install folder. In Steam: right-click the game → <em>Manage → Browse local files.</em></li>
+          <li>Extract the BepInEx zip directly into the game folder root. You should now see <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">winhttp.dll</code> and a <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/</code> folder alongside the game executable.</li>
+          <li>Launch the game once and let it run for 2–5 minutes. BepInEx runs an IL2CPP interop generation process on first launch — a console window will appear showing progress. This is normal.</li>
+          <li>Close the game. Verify that <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/interop/</code> now exists and contains .dll files. BepInEx is working.</li>
+        </ol>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/dBWnSe8lE3w" allowfullscreen title="BepInEx Unity modding 2026"></iframe>
+          <div class="video-caption">BepInEx setup for Unity games explained (2026)</div>
+        </div>
+      `
+    },
+    {
+      title: 'Install mods',
+      content: `
+        <div class="eyebrow">Quest PC VR · Slide 3 of 4</div>
+        <h2>Installing mods</h2>
+        <p>With BepInEx running, adding mods is as simple as dropping a .dll file into a folder. BepInEx loads every plugin in the plugins folder automatically on launch.</p>
+        <ol class="step-list">
+          <li>Find mods on <strong>Thunderstore</strong> (thunderstore.io), <strong>Nexus Mods</strong>, or your game's Discord/Reddit community. Many VR games have a Thunderstore page with a one-click mod manager app.</li>
+          <li>Drop the mod <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">.dll</code> file into:<div class="code-block">GameFolder/BepInEx/plugins/</div></li>
+          <li>Launch the game. BepInEx automatically loads every DLL in the plugins folder.</li>
+          <li>If a mod doesn't work, check <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/LogOutput.log</code> for error messages. Most issues are missing dependencies or wrong BepInEx version.</li>
+        </ol>
+        <div class="info-card">
+          <h3>Tip: Install UnityExplorer first</h3>
+          <p>UnityExplorer is a BepInEx plugin that gives you a live inspector inside the game — browse all GameObjects, components, and field values in real time. Essential for both finding bugs and discovering what you want to mod.</p>
+        </div>
+        <div class="alert alert-success"><strong>Mod manager shortcut:</strong> Search "[your game name] r2modman" or "[game name] thunderstore" — many popular VR games have a one-click installer app that handles everything.</div>
+      `
+    },
+    {
+      title: 'Write your own mod',
+      content: `
+        <div class="eyebrow">Quest PC VR · Slide 4 of 4</div>
+        <h2>Writing your own IL2CPP mod</h2>
+        <div class="tags"><span class="tag tag-med">Intermediate</span></div>
+        <p>Want to create something custom? Here's the full workflow for writing a BepInEx plugin for an IL2CPP Unity VR game.</p>
+        <ol class="step-list">
+          <li>Install <strong>Visual Studio 2022</strong> (Community edition is free) with the .NET desktop workload, or JetBrains Rider.</li>
+          <li>Create a new <strong>Class Library (.NET Standard 2.1)</strong> project.</li>
+          <li>Add NuGet references to <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx.Unity.IL2CPP</code>. Also add local file references to the game's interop assemblies in <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/interop/</code>.</li>
+          <li>Write your plugin class and use Harmony to patch methods:</li>
+        </ol>
+        <div class="code-block">[BepInPlugin("com.you.modname", "My Mod", "1.0.0")]
+public class Plugin : BasePlugin {
+    public override void Load() {
+        Log.LogInfo("Mod loaded!");
+        Harmony.CreateAndPatchAll(typeof(Plugin));
+    }
+
+    [HarmonyPatch(typeof(PlayerHealth), "TakeDamage")]
+    [HarmonyPrefix]
+    static bool NoDamage() {
+        return false; // skip the original method
+    }
+}</div>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/-YUsdD3nlbU" allowfullscreen title="BepInEx mod writing 2025"></iframe>
+          <div class="video-caption">BepInEx tutorial — install mods in any Unity game (2025)</div>
+        </div>
+      `
+    }
+  ],
+
+  'pcvr': [
+    {
+      title: 'Overview',
+      content: `
+        <div class="eyebrow">PC VR · Slide 1 of 5</div>
+        <h2>PC VR IL2CPP modding</h2>
+        <div class="alert alert-success"><strong>Easiest platform to mod.</strong> You have full access to game files and can use mature, well-documented tooling.</div>
+        <p>PC VR games using IL2CPP compile C# to native code, but BepInEx handles this by generating interop assemblies on first run — so you still write mods in regular C#.</p>
+        <div class="tool-grid">
+          <div class="tool-item"><div class="name">BepInEx</div><div class="desc">Most widely used mod framework. Full IL2CPP support.</div></div>
+          <div class="tool-item"><div class="name">MelonLoader</div><div class="desc">Popular for VRChat and select titles.</div></div>
+          <div class="tool-item"><div class="name">Harmony</div><div class="desc">Method patching — hooks into existing game code.</div></div>
+          <div class="tool-item"><div class="name">UnityExplorer</div><div class="desc">Runtime inspector to see all game objects live.</div></div>
+          <div class="tool-item"><div class="name">Il2CppDumper</div><div class="desc">Extracts all class/method names from game metadata.</div></div>
+          <div class="tool-item"><div class="name">Thunderstore</div><div class="desc">Mod repository + one-click installer for many VR games.</div></div>
+        </div>
+        <p style="font-size:13px;color:var(--muted)">Check your specific game's modding community first — most popular VR games (Bonelab, Half-Life: Alyx, etc.) have their own dedicated guides and mod managers that handle setup for you.</p>
+      `
+    },
+    {
+      title: 'Install BepInEx',
+      content: `
+        <div class="eyebrow">PC VR · Slide 2 of 5</div>
+        <h2>Install BepInEx for IL2CPP</h2>
+        <ol class="step-list">
+          <li>Go to <strong>github.com/BepInEx/BepInEx/releases</strong>. Download the latest <strong>BepInEx_win_x64</strong> zip. You want BepInEx 6.x — earlier versions don't support IL2CPP properly.</li>
+          <li>Find your game folder. In Steam: right-click the game → <em>Manage → Browse local files.</em></li>
+          <li>Extract the zip directly into the game root folder. You should now see <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">winhttp.dll</code> and <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/</code> next to the game .exe.</li>
+          <li>Launch the game once. BepInEx will intercept the launch and run the IL2CPP interop generation — a console window appears. Wait 2–5 minutes for it to finish, then close the game.</li>
+          <li>Check that <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/interop/</code> now exists with .dll files inside. If it does, BepInEx is working correctly.</li>
+        </ol>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/dBWnSe8lE3w" allowfullscreen title="BepInEx setup 2026"></iframe>
+          <div class="video-caption">Modding Unity games with BepInEx — setup explained (2026)</div>
+        </div>
+      `
+    },
+    {
+      title: 'Install mods',
+      content: `
+        <div class="eyebrow">PC VR · Slide 3 of 5</div>
+        <h2>Installing mods</h2>
+        <p>With BepInEx running, installing mods is a matter of dropping files into the right folder.</p>
+        <ol class="step-list">
+          <li>Find mods on <strong>Thunderstore</strong> (thunderstore.io) or <strong>Nexus Mods</strong>. Check if your game has its own Thunderstore page — many popular VR titles do, including a one-click mod manager app.</li>
+          <li>Download the mod and place the <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">.dll</code> file into:<div class="code-block">GameFolder/BepInEx/plugins/</div></li>
+          <li>Launch the game. Every DLL in the plugins folder is loaded automatically.</li>
+          <li>Check <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/LogOutput.log</code> if a mod doesn't work — it usually tells you exactly what's wrong.</li>
+        </ol>
+        <div class="info-card">
+          <h3>Install UnityExplorer first</h3>
+          <p>Drop the UnityExplorer BepInEx plugin into your plugins folder. It adds an in-game inspector panel so you can browse all GameObjects, components, and values in real time. Invaluable for both understanding the game and debugging your mods.</p>
+        </div>
+        <div class="alert alert-success"><strong>Mod manager:</strong> Many VR game communities use r2modman or Thunderstore Mod Manager — a GUI app that handles mod installs, updates, and profiles automatically.</div>
+      `
+    },
+    {
+      title: 'Write your own mod',
+      content: `
+        <div class="eyebrow">PC VR · Slide 4 of 5</div>
+        <h2>Creating a mod from scratch</h2>
+        <div class="tags"><span class="tag tag-med">Intermediate</span></div>
+        <p>Here's how to write your first BepInEx plugin for an IL2CPP Unity VR game.</p>
+        <ol class="step-list">
+          <li>Install <strong>Visual Studio 2022</strong> (Community is free) with the .NET desktop workload, or JetBrains Rider.</li>
+          <li>Create a new <strong>Class Library (.NET Standard 2.1)</strong> project.</li>
+          <li>Add NuGet reference to <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx.Unity.IL2CPP</code>. Add local file references to the game's interop assemblies from <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">BepInEx/interop/</code>.</li>
+          <li>Create your plugin class:</li>
+        </ol>
+        <div class="code-block">[BepInPlugin("com.you.modname", "My Mod", "1.0.0")]
+public class Plugin : BasePlugin {
+    public override void Load() {
+        Log.LogInfo("Mod loaded!");
+        Harmony.CreateAndPatchAll(typeof(Plugin));
+    }
+
+    // Example: skip a method entirely
+    [HarmonyPatch(typeof(PlayerHealth), "TakeDamage")]
+    [HarmonyPrefix]
+    static bool NoDamage() => false;
+
+    // Example: modify a return value
+    [HarmonyPatch(typeof(PlayerStats), "GetMoveSpeed")]
+    [HarmonyPostfix]
+    static void SpeedBoost(ref float __result) => __result *= 2f;
+}</div>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/-YUsdD3nlbU" allowfullscreen title="BepInEx mod tutorial 2025"></iframe>
+          <div class="video-caption">BepInEx tutorial — write your first Unity mod (2025)</div>
+        </div>
+      `
+    },
+    {
+      title: 'Find method names',
+      content: `
+        <div class="eyebrow">PC VR · Slide 5 of 5</div>
+        <h2>Finding method names with Il2CppDumper</h2>
+        <p>To write Harmony patches, you need exact class and method names. Il2CppDumper extracts everything from the game's IL2CPP metadata so you know what you can target.</p>
+        <ol class="step-list">
+          <li>Download <strong>Il2CppDumper</strong> from <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">github.com/Perfare/Il2CppDumper</code>.</li>
+          <li>In the game folder, find these two files:<div class="code-block">GameAssembly.dll
+[GameName]_Data/il2cpp_data/Metadata/global-metadata.dat</div></li>
+          <li>Run Il2CppDumper.exe, point it at both files, and choose auto mode. It generates <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">dump.cs</code> — a file listing every class, method, field, and property in the game.</li>
+          <li>Search <code style="font-family:monospace;background:#0a0a0c;padding:2px 6px;border-radius:4px;font-size:13px">dump.cs</code> in a text editor for keywords related to what you want to mod (e.g. "health", "damage", "score", "speed").</li>
+        </ol>
+        <div class="video-wrap">
+          <iframe src="https://www.youtube.com/embed/gc3I_u_Xy4c" allowfullscreen title="Il2CppDumper tutorial"></iframe>
+          <div class="video-caption">How to use Il2CppDumper — Unity IL2CPP game modding</div>
+        </div>
+        <div class="info-card">
+          <h3>Faster alternative: UnityExplorer</h3>
+          <p>Install UnityExplorer and use the live class browser inside the game. Searching interactively is often faster than reading a static dump.cs file — especially when you can see actual runtime values.</p>
+        </div>
+      `
+    }
+  ],
+
+  'pico': [
+    {
+      title: 'Overview',
+      content: `
+        <div class="eyebrow">Pico · Slide 1 of 2</div>
+        <h2>Modding IL2CPP games on Pico</h2>
+        <div class="alert alert-warn"><strong>Difficulty: Hard.</strong> Pico runs Android ARM binaries like Meta Quest standalone. BepInEx and MelonLoader do not work. Community support is significantly smaller.</div>
+        <p>Pico headsets run Android, so IL2CPP games compile to native ARM machine code. The modding approach is APK patching — pull the APK with ADB, dump with Il2CppDumper, patch the binary, repack, sign, sideload.</p>
+        <p>The process is nearly identical to standalone Quest modding. The main difference is smaller community resources — you'll likely need to reverse engineer more on your own.</p>
+        <div class="info-card">
+          <h3>Enable developer mode on Pico</h3>
+          <p>Go to <em>Settings → General → Developer Options</em> and enable USB Debugging. On Pico 4, you may first need to tap the build number 7 times to unlock developer options — same as Android phones.</p>
+        </div>
+      `
+    },
+    {
+      title: 'ADB & APK patching',
+      content: `
+        <div class="eyebrow">Pico · Slide 2 of 2</div>
+        <h2>ADB setup & APK patching</h2>
+        <p>With developer mode on, the process is the same as Quest standalone modding from this point forward.</p>
+        <ol class="step-list">
+          <li>Install ADB on your PC (download Android SDK Platform Tools from developer.android.com, or use SideQuest's bundled ADB).</li>
+          <li>Connect Pico via USB-C. Accept the USB debugging prompt in the headset.</li>
+          <li>Verify connection:<div class="code-block">adb devices</div></li>
+          <li>Find your game's package name:<div class="code-block">adb shell pm list packages | grep -i [gamename]</div></li>
+          <li>Pull the APK:<div class="code-block">adb shell pm path com.package.name
+adb pull /data/app/.../base.apk game.apk</div></li>
+        </ol>
+        <div class="alert alert-success">From here, the steps are identical to Quest standalone: extract the APK, run Il2CppDumper on <code style="font-family:monospace;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;font-size:13px">libil2cpp.so</code> and <code style="font-family:monospace;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;font-size:13px">global-metadata.dat</code>, patch the binary with Ghidra or a hex editor, repack with APKTool, sign, and sideload.</div>
+        <p>For the detailed patching walkthrough, run through the <strong>Quest Standalone</strong> tutorial from slide 4 onwards — the process is the same from that point.</p>
+      `
+    }
+  ]
+};
+
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function pickHeadset(h) {
+  if (h === 'quest') goTo('s1');
+  else if (h === 'psvr') goTo('s-psvr');
+  else if (h === 'pcvr') startTutorial('pcvr');
+  else if (h === 'pico') startTutorial('pico');
+}
+
+function startTutorial(key) {
+  slides = tutorials[key];
+  currentSlide = 0;
+  renderSlide();
+  buildDots();
+  goTo('tutorial-container');
+}
+
+function renderSlide() {
+  document.getElementById('tutorial-slides').innerHTML = slides[currentSlide].content;
+  document.getElementById('prev-btn').disabled = currentSlide === 0;
+  const nextBtn = document.getElementById('next-btn');
+  if (currentSlide === slides.length - 1) {
+    nextBtn.textContent = 'Done ✓';
+    nextBtn.onclick = () => goTo('s0');
+  } else {
+    nextBtn.textContent = 'Next →';
+    nextBtn.onclick = nextSlide;
+  }
+  updateDots();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function buildDots() {
+  document.getElementById('progress-dots').innerHTML =
+    slides.map((_, i) => `<div class="dot" id="dot-${i}" onclick="jumpTo(${i})"></div>`).join('');
+  updateDots();
+}
+
+function updateDots() {
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+}
+
+function jumpTo(i) { currentSlide = i; renderSlide(); }
+function nextSlide() { if (currentSlide < slides.length - 1) { currentSlide++; renderSlide(); } }
+function prevSlide() { if (currentSlide > 0) { currentSlide--; renderSlide(); } }
+</script>
+</body>
+</html>
